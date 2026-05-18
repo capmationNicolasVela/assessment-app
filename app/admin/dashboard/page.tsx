@@ -20,6 +20,21 @@ export default async function DashboardPage() {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <a
+            href="/host"
+            className="btn btn-ghost"
+            style={{ fontSize: '0.85rem', padding: '8px 16px', color: '#fff', borderColor: 'rgba(255,255,255,.3)' }}
+          >
+            🎮 Host Kahoot
+          </a>
+          <a
+            href="/jeopardy.html"
+            target="_blank"
+            className="btn btn-ghost"
+            style={{ fontSize: '0.85rem', padding: '8px 16px', color: '#fff', borderColor: 'rgba(255,255,255,.3)' }}
+          >
+            ⚡ Jeopardy
+          </a>
+          <a
             href="/api/admin/export"
             className="btn btn-ghost"
             style={{ fontSize: '0.85rem', padding: '8px 16px', color: '#fff', borderColor: 'rgba(255,255,255,.3)' }}

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Workshop · Day 5 · Final Challenge</title>
+<style>
+  :root {
+    --bg:      #0d1117;
+    --surface: #161b22;
+    --border:  #30363d;
+    --accent:  #f0a500;
+    --green:   #3fb950;
+    --red:     #f85149;
+    --blue:    #58a6ff;
+    --text:    #e6edf3;
+    --muted:   #8b949e;
+    --cat1: #1d4ed8; --cat2: #7c3aed; --cat3: #065f46;
+    --cat4: #9a3412; --cat5: #1e3a5f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; }
+
+  /* ── SCREENS ── */
+  .screen { display: none; width: 100vw; height: 100vh; }
+  .screen.active { display: flex; }
+
+  /* ── SETUP ── */
+  #setup {
+    flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+    background: radial-gradient(ellipse at center, #1d2a3a 0%, var(--bg) 70%);
+  }
+  #setup h1 { font-size: 2.2rem; color: var(--accent); letter-spacing: 1px; }
+  #setup p  { color: var(--muted); font-size: 1rem; }
+  .setup-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px 36px; width: 440px; display: flex; flex-direction: column; gap: 16px;
+  }
+  .setup-box h2 { font-size: 1rem; color: var(--muted); font-weight: 500; }
+  .input-row { display: flex; gap: 8px; }
+  .input-row input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 10px 14px; font-size: 0.95rem; outline: none;
+  }
+  .input-row input:focus { border-color: var(--accent); }
+  .btn {
+    background: var(--accent); color: #000; border: none; border-radius: 8px;
+    padding: 10px 18px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn:disabled { opacity: .35; cursor: not-allowed; }
+  .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn.ghost:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+  #player-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 36px; }
+  .player-chip {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
+    padding: 5px 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;
+  }
+  .player-chip button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; }
+  .player-chip button:hover { color: var(--red); }
+  #start-btn { width: 100%; padding: 14px; font-size: 1rem; }
+
+  /* ── BOARD ── */
+  #board { flex-direction: column; }
+  .board-header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 10px 20px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .board-header h1 { font-size: 1rem; color: var(--accent); letter-spacing: 1px; }
+  #scoreboard { display: flex; gap: 16px; align-items: center; }
+  .score-card {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 14px; text-align: center; min-width: 80px;
+  }
+  .score-card .sname { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .score-card .sval  { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+  .score-card.leader { border-color: var(--accent); background: #1a1500; }
+  .board-grid {
+    flex: 1; display: grid; grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: auto repeat(4, 1fr); gap: 6px; padding: 12px;
+  }
+  .cat-header {
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+    text-align: center; padding: 10px 6px; color: #fff;
+  }
+  .cat-header:nth-child(1) { background: var(--cat1); }
+  .cat-header:nth-child(2) { background: var(--cat2); }
+  .cat-header:nth-child(3) { background: var(--cat3); }
+  .cat-header:nth-child(4) { background: var(--cat4); }
+  .cat-header:nth-child(5) { background: var(--cat5); }
+  .tile {
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 900; color: var(--accent); cursor: pointer;
+    transition: transform .1s, opacity .2s; border: 2px solid transparent;
+  }
+  .tile:nth-child(5n+1) { background: #1a2a4a; border-color: #1d4ed8; }
+  .tile:nth-child(5n+2) { background: #2a1a4a; border-color: #7c3aed; }
+  .tile:nth-child(5n+3) { background: #1a3a2a; border-color: #065f46; }
+  .tile:nth-child(5n+4) { background: #3a2a1a; border-color: #9a3412; }
+  .tile:nth-child(5n+5) { background: #1a2a3a; border-color: #1e3a5f; }
+  .tile:hover:not(.used) { transform: scale(1.04); border-color: var(--accent); }
+  .tile.used { opacity: .15; cursor: default; pointer-events: none; }
+
+  /* ── QUESTION / ANSWER ── */
+  #question, #answer {
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 28px; padding: 48px; text-align: center;
+    background: radial-gradient(ellipse at center, #1d2a3a 0%, var(--bg) 70%);
+  }
+  .q-meta { display: flex; gap: 12px; align-items: center; }
+  .q-cat {
+    padding: 5px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .q-pts { font-size: 2rem; font-weight: 900; color: var(--accent); }
+  .q-text { font-size: 1.45rem; max-width: 820px; line-height: 1.55; font-weight: 500; }
+  .a-text {
+    font-size: 1.2rem; max-width: 820px; line-height: 1.6;
+    background: var(--surface); border: 1px solid var(--green);
+    border-radius: 12px; padding: 20px 28px; color: var(--green);
+  }
+  /* timer */
+  #timer-wrap { width: 480px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  #timer-bar { height: 100%; background: var(--green); border-radius: 3px; transition: width .1s linear, background .5s; width: 100%; }
+  #timer-label { font-size: 1rem; font-weight: 700; color: var(--muted); }
+  /* award buttons */
+  #award-section { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  #award-section h3 { font-size: 0.9rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  #award-btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 700px; }
+  .award-btn {
+    background: var(--surface); border: 2px solid var(--border); border-radius: 10px;
+    color: var(--text); padding: 10px 22px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all .15s;
+  }
+  .award-btn:hover { border-color: var(--green); color: var(--green); }
+  .award-btn.skip { border-color: var(--border); color: var(--muted); }
+  .award-btn.skip:hover { border-color: var(--red); color: var(--red); }
+  .awarded-msg { font-size: 1.1rem; font-weight: 700; color: var(--green); }
+
+  /* ── FINAL ── */
+  #final {
+    flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+    background: radial-gradient(ellipse at center, #1a1500 0%, var(--bg) 70%);
+  }
+  #final h1 { font-size: 2.5rem; color: var(--accent); }
+  #final-board { display: flex; flex-direction: column; gap: 10px; min-width: 400px; }
+  .final-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 20px; font-size: 1.1rem;
+  }
+  .final-row.first { border-color: var(--accent); background: #1a1500; }
+  .final-row .rank { font-size: 1.4rem; margin-right: 14px; }
+  .final-row .fname { font-weight: 700; }
+  .final-row .fpts { font-size: 1.3rem; font-weight: 900; color: var(--accent); }
+  .confetti { position: fixed; top: 0; left: 0; pointer-events: none; width: 100%; height: 100%; overflow: hidden; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════ SETUP ══════════ -->
+<section id="setup" class="screen active">
+  <h1>⚡ API Workshop · Final Challenge</h1>
+  <p>Day 5 · Integration Simulation · Jeopardy</p>
+  <div class="setup-box">
+    <h2>Add participants</h2>
+    <div class="input-row">
+      <input id="name-input" type="text" placeholder="Participant name" maxlength="24" />
+      <button class="btn" id="add-btn">Add</button>
+    </div>
+    <div id="player-list"></div>
+    <button class="btn" id="start-btn" disabled>Start Game →</button>
+  </div>
+</section>
+
+<!-- ══════════ BOARD ══════════ -->
+<section id="board" class="screen">
+  <div class="board-header">
+    <h1>⚡ API FINAL CHALLENGE</h1>
+    <div id="scoreboard"></div>
+  </div>
+  <div class="board-grid" id="board-grid"></div>
+</section>
+
+<!-- ══════════ QUESTION ══════════ -->
+<section id="question" class="screen">
+  <div class="q-meta">
+    <span class="q-cat" id="q-cat-label"></span>
+    <span class="q-pts" id="q-pts-label"></span>
+  </div>
+  <div id="timer-wrap"><div id="timer-bar"></div></div>
+  <div id="timer-label">30</div>
+  <p class="q-text" id="q-text"></p>
+  <button class="btn" id="reveal-btn">Reveal Answer</button>
+</section>
+
+<!-- ══════════ ANSWER ══════════ -->
+<section id="answer" class="screen">
+  <div class="q-meta">
+    <span class="q-cat" id="a-cat-label"></span>
+    <span class="q-pts" id="a-pts-label"></span>
+  </div>
+  <p class="q-text" id="a-q-text" style="opacity:.55;font-size:1.1rem;"></p>
+  <div class="a-text" id="a-text"></div>
+  <div id="award-section">
+    <h3>Who got it right?</h3>
+    <div id="award-btns"></div>
+    <div id="awarded-msg" class="awarded-msg" style="display:none;"></div>
+  </div>
+  <button class="btn ghost" id="back-btn" style="display:none;">← Back to Board</button>
+</section>
+
+<!-- ══════════ FINAL ══════════ -->
+<section id="final" class="screen">
+  <div class="confetti" id="confetti"></div>
+  <h1>🏆 Final Scoreboard</h1>
+  <div id="final-board"></div>
+  <button class="btn ghost" id="restart-btn" style="margin-top:12px;">Play Again</button>
+</section>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const CAT_COLORS = ['#1d4ed8','#7c3aed','#065f46','#9a3412','#1e3a5f'];
+
+const CATEGORIES = [
+  {
+    title: "HTTP Basics",
+    questions: [
+      {
+        q: "The CRM needs to CREATE a new user account in the Workspace Platform for the first time. Which HTTP method should the integration use?",
+        a: "POST — creates a new resource. In this case: POST /users"
+      },
+      {
+        q: "A contact's email changed in NexaCRM. The integration needs to update ONLY the email field in the Platform — not replace the whole user record. Which HTTP method?",
+        a: "PATCH — partial update of an existing resource. PATCH /users/{id} with only the email field."
+      },
+      {
+        q: "The CRM sends a request to POST /users but forgets to include the required `username` field. What HTTP status code should the Platform return — and why?",
+        a: "400 Bad Request — the request is malformed or missing required data. The server understood the request but refuses to process it due to client error."
+      },
+      {
+        q: "A developer proposes using GET /users (returns ALL users) inside a loop to search by email. This endpoint is admin-only. Name TWO problems with this approach.",
+        a: "(1) Exposes the full user directory on every call — a single credential leak = full data breach. (2) No pagination = O(n) scan on every check. Better: GET /users/by-username/{username} returns 404 if not found."
+      }
+    ]
+  },
+  {
+    title: "Status Codes",
+    questions: [
+      {
+        q: "The CRM calls POST /users and receives a 201 response. In plain business language, what happened?",
+        a: "The user account was created successfully. 201 = Created. The server is confirming a new resource now exists. The response body contains the new user's id."
+      },
+      {
+        q: "POST /users is called with an email that already exists. The API returns 400. A developer says it should be 409. Who is right — and why?",
+        a: "The developer. 400 = client syntax error. 409 Conflict = the request is valid BUT conflicts with existing state (duplicate resource). 409 is semantically correct for 'this resource already exists.'"
+      },
+      {
+        q: "The integration's access token expired. The CRM sends POST /users with the old token. What status code comes back — and what exact step should the integration take next?",
+        a: "401 Unauthorized. Next step: call POST /auth/refresh with the refresh token to get a new access token — without re-entering credentials. Then retry the original call."
+      },
+      {
+        q: "DELETE /users/{id} returns 200 OK. Two weeks later, the CRM sends PATCH /users/{id} to update the same user. What status code comes back — and what design failure does this reveal?",
+        a: "404 Not Found. Design failure: the CRM still had platform_user_id pointing to a deleted user. The integration spec never defined what to do when a user is deleted. Deprovisioning must trigger cleanup on both sides."
+      }
+    ]
+  },
+  {
+    title: "Authentication",
+    questions: [
+      {
+        q: "NexaCRM uses an API key that never expires. The Workspace Platform uses a JWT that expires in 15 minutes. Why does the integration need to handle BOTH — and what's the risk of the API key never expiring?",
+        a: "Both because each system has its own auth model. Risk of non-expiring key: if compromised, attacker has indefinite access. JWTs limit the damage window. API keys must be manually rotated — and most teams forget to do it."
+      },
+      {
+        q: "The Platform's JWT is Base64 encoded — not encrypted. The payload contains `role: 'admin'`. What does this mean for anyone who intercepts the token?",
+        a: "They can decode and READ the payload — including the username and role — without any key. JWTs prove authenticity (signature) but not confidentiality. Never put sensitive data in a JWT payload. Use HTTPS to protect the token in transit."
+      },
+      {
+        q: "A developer stores `admin / Admin123!` as a plain string in the application code and commits it to GitHub. Name TWO concrete risks.",
+        a: "(1) Anyone with repo access — including future employees, contractors, or if public — can see the credentials. (2) Even after deleting the line, the credential lives in git history forever. Solution: use environment variables + a secrets manager."
+      },
+      {
+        q: "The Platform invalidates refresh tokens immediately after use. Due to a retry bug, the CRM uses the same refresh token twice. What happens on the second call — and why is this security feature valuable?",
+        a: "Second call returns 401. The feature (token rotation with reuse detection) protects against token theft: if a stolen refresh token is used, the legitimate system also tries to use it and gets 401 — triggering an alert that a token was reused."
+      }
+    ]
+  },
+  {
+    title: "Read the Docs",
+    questions: [
+      {
+        q: "According to the Platform API, what characters are NOT allowed in the `username` field? Give at least 3 specific examples.",
+        a: "Spaces, accented characters (é, ü, ñ, á), special characters (@, !, #), uppercase letters. Only allowed: a–z, 0–9, dot (.), hyphen (-), underscore (_). Max 50 characters."
+      },
+      {
+        q: "NexaCRM has a contact: `full_name: \"O'Brien, Patrick\"`. The integration derives usernames as `firstname.lastname`. What TWO problems does this specific name create?",
+        a: "(1) Apostrophe (') is not an allowed character → API returns 400. (2) The comma in 'O'Brien, Patrick' (last-name-first format) breaks the derivation rule — the result would be wrong. Edge cases in naming conventions must be specified before dev starts."
+      },
+      {
+        q: "The Platform API has no find-by-email endpoint. The CRM needs to check if an email already exists before creating a user. What is the only available check — and what gap does it leave?",
+        a: "GET /users/by-username/{username} — returns 404 if username doesn't exist. Gap: you can only check by username, not email. If two contacts derive to the same username (john.smith × 2), you won't detect the email collision until POST /users returns 400."
+      },
+      {
+        q: "The Platform API doc states: POST /users does not accept fields beyond username, email, password, role. The CRM wants to link records by storing its own contact ID in the Platform user. What are TWO valid solutions that don't require changing the Platform API?",
+        a: "(1) Store the Platform's returned `id` (UUID) back in NexaCRM's `platform_user_id` field — the link lives in the CRM. (2) Maintain a separate mapping table (CRM contact ID ↔ Platform UUID) outside both APIs. Both are valid integration patterns."
+      }
+    ]
+  },
+  {
+    title: "Integration Design",
+    questions: [
+      {
+        q: "In the Day 5 exercise, each team had sensitive data in their API doc. Name TWO fields that should NEVER appear in the integration payload — and explain why for each.",
+        a: "Examples: `internal_notes` (sales team private comments), `lead_score` (proprietary ML output), `monthly_value` / `discount_code` (commercial data), `webhook_secret` / API key (credentials). Rule: only send the minimum data needed. Data minimization reduces breach impact."
+      },
+      {
+        q: "The CRM creates a user in the Platform and receives back `id: 'a1b2c3...'`. What MUST happen next — and what breaks permanently if this step is skipped?",
+        a: "PATCH /contacts/{contactId} in NexaCRM with `platform_user_id: 'a1b2c3...'`. If skipped: the CRM has no reference to the Platform user. Future updates (email change, deprovisioning) have no target. The integration becomes one-way and unrecoverable."
+      },
+      {
+        q: "NexaCRM `contact_type` has 4 values: decision_maker, technical, end_user, billing. Platform `role` only has admin or client. Design the mapping rule AND name one scenario where the rule creates a business problem.",
+        a: "Rule: map all 4 to 'client'. Problem example: a 'technical' contact may need elevated read access that 'client' doesn't provide — so the integration silently under-provisions them. Or: a new contact_type is added to the CRM and no one updates the mapping."
+      },
+      {
+        q: "3 months after go-live: a contact's name changes in NexaCRM. The CRM sends `full_name: 'Laura García'` (was Martínez). The Platform user still has `username: laura.martinez`. What should happen — and name TWO risks in making it happen?",
+        a: "Trigger PATCH /users/{id} with new derived username `laura.garcia`. Risk 1: username collision — 'laura.garcia' might already exist (another user). Risk 2: username change breaks existing bookmarks, shared links, and any system that stored the old username as a key. Username changes are high-impact and need a strategy."
+      }
+    ]
+  }
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let players = [];
+let scores  = {};
+let used    = [];      // flat index of used tiles
+let current = {};      // { catIdx, qIdx, points }
+let timerID = null;
+let timeLeft = 30;
+let awarded = false;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const show = id => { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); };
+
+function flatIdx(c, q) { return c * 4 + q; }
+function allUsed() { return used.length === CATEGORIES.length * 4; }
+
+function updateScoreboard() {
+  const sb = $('scoreboard');
+  sb.innerHTML = '';
+  const sorted = [...players].sort((a,b) => scores[b]-scores[a]);
+  players.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'score-card' + (p === sorted[0] && scores[sorted[0]] > 0 ? ' leader' : '');
+    card.innerHTML = `<div class="sname">${p}</div><div class="sval">${scores[p] >= 0 ? '' : '-'}${Math.abs(scores[p])}</div>`;
+    sb.appendChild(card);
+  });
+}
+
+// ── SETUP ─────────────────────────────────────────────────────────────────────
+function addPlayer() {
+  const val = $('name-input').value.trim();
+  if (!val || players.includes(val)) return;
+  players.push(val);
+  scores[val] = 0;
+  $('name-input').value = '';
+  renderChips();
+  $('start-btn').disabled = players.length < 2;
+}
+
+function removePlayer(name) {
+  players = players.filter(p => p !== name);
+  delete scores[name];
+  renderChips();
+  $('start-btn').disabled = players.length < 2;
+}
+
+function renderChips() {
+  const list = $('player-list');
+  list.innerHTML = '';
+  players.forEach(p => {
+    const chip = document.createElement('div');
+    chip.className = 'player-chip';
+    chip.innerHTML = `${p}<button onclick="removePlayer('${p}')">×</button>`;
+    list.appendChild(chip);
+  });
+}
+
+$('name-input').addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
+$('add-btn').addEventListener('click', addPlayer);
+$('start-btn').addEventListener('click', startGame);
+
+// ── BOARD ─────────────────────────────────────────────────────────────────────
+function startGame() {
+  used = [];
+  players.forEach(p => scores[p] = 0);
+  buildBoard();
+  updateScoreboard();
+  show('board');
+}
+
+function buildBoard() {
+  const grid = $('board-grid');
+  grid.innerHTML = '';
+  CATEGORIES.forEach((cat, ci) => {
+    const hdr = document.createElement('div');
+    hdr.className = 'cat-header';
+    hdr.style.background = CAT_COLORS[ci];
+    hdr.textContent = cat.title;
+    grid.appendChild(hdr);
+  });
+  [100, 200, 300, 400].forEach((pts, qi) => {
+    CATEGORIES.forEach((_, ci) => {
+      const tile = document.createElement('div');
+      tile.className = 'tile' + (used.includes(flatIdx(ci,qi)) ? ' used' : '');
+      tile.textContent = pts;
+      tile.dataset.ci = ci;
+      tile.dataset.qi = qi;
+      tile.dataset.pts = pts;
+      tile.addEventListener('click', () => openQuestion(ci, qi, pts));
+      grid.appendChild(tile);
+    });
+  });
+}
+
+// ── QUESTION ──────────────────────────────────────────────────────────────────
+function openQuestion(ci, qi, pts) {
+  if (used.includes(flatIdx(ci,qi))) return;
+  current = { ci, qi, pts };
+  awarded = false;
+
+  const cat = CATEGORIES[ci];
+  const q   = cat.questions[qi];
+
+  $('q-cat-label').textContent = cat.title;
+  $('q-cat-label').style.background = CAT_COLORS[ci];
+  $('q-cat-label').style.color = '#fff';
+  $('q-pts-label').textContent = pts + ' pts';
+  $('q-text').textContent = q.q;
+  $('reveal-btn').style.display = '';
+  $('timer-bar').style.width = '100%';
+  $('timer-bar').style.background = '#3fb950';
+
+  startTimer();
+  show('question');
+}
+
+function startTimer() {
+  clearInterval(timerID);
+  timeLeft = 30;
+  $('timer-label').textContent = timeLeft;
+  timerID = setInterval(() => {
+    timeLeft--;
+    const pct = (timeLeft / 30) * 100;
+    $('timer-bar').style.width = pct + '%';
+    if (timeLeft <= 10) $('timer-bar').style.background = '#f85149';
+    else if (timeLeft <= 20) $('timer-bar').style.background = '#f0a500';
+    $('timer-label').textContent = timeLeft;
+    if (timeLeft <= 0) { clearInterval(timerID); openAnswer(); }
+  }, 1000);
+}
+
+$('reveal-btn').addEventListener('click', () => { clearInterval(timerID); openAnswer(); });
+
+// ── ANSWER ────────────────────────────────────────────────────────────────────
+function openAnswer() {
+  const cat = CATEGORIES[current.ci];
+  const q   = cat.questions[current.qi];
+
+  $('a-cat-label').textContent = cat.title;
+  $('a-cat-label').style.background = CAT_COLORS[current.ci];
+  $('a-cat-label').style.color = '#fff';
+  $('a-pts-label').textContent = current.pts + ' pts';
+  $('a-q-text').textContent = q.q;
+  $('a-text').textContent = q.a;
+
+  const btns = $('award-btns');
+  btns.innerHTML = '';
+  players.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'award-btn';
+    b.textContent = p;
+    b.addEventListener('click', () => awardPoints(p));
+    btns.appendChild(b);
+  });
+  const skip = document.createElement('button');
+  skip.className = 'award-btn skip';
+  skip.textContent = 'Nobody / Skip';
+  skip.addEventListener('click', () => awardPoints(null));
+  btns.appendChild(skip);
+
+  $('awarded-msg').style.display = 'none';
+  $('back-btn').style.display = 'none';
+  show('answer');
+}
+
+function awardPoints(player) {
+  if (awarded) return;
+  awarded = true;
+  used.push(flatIdx(current.ci, current.qi));
+
+  if (player) {
+    scores[player] += current.pts;
+    $('awarded-msg').textContent = `+${current.pts} pts → ${player}`;
+  } else {
+    $('awarded-msg').textContent = 'No points awarded.';
+  }
+  $('awarded-msg').style.display = '';
+  $('award-btns').querySelectorAll('.award-btn').forEach(b => b.disabled = true);
+  $('back-btn').style.display = '';
+}
+
+$('back-btn').addEventListener('click', () => {
+  if (allUsed()) { showFinal(); return; }
+  buildBoard();
+  updateScoreboard();
+  show('board');
+});
+
+// ── FINAL ─────────────────────────────────────────────────────────────────────
+function showFinal() {
+  const sorted = [...players].sort((a,b) => scores[b]-scores[a]);
+  const board = $('final-board');
+  board.innerHTML = '';
+  const medals = ['🥇','🥈','🥉'];
+  sorted.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'final-row' + (i === 0 ? ' first' : '');
+    row.innerHTML = `<span class="rank">${medals[i] || (i+1)}</span><span class="fname">${p}</span><span class="fpts">${scores[p]} pts</span>`;
+    board.appendChild(row);
+  });
+  launchConfetti();
+  show('final');
+}
+
+$('restart-btn').addEventListener('click', () => {
+  players = [];
+  scores  = {};
+  used    = [];
+  $('player-list').innerHTML = '';
+  $('start-btn').disabled = true;
+  show('setup');
+});
+
+// ── CONFETTI ──────────────────────────────────────────────────────────────────
+function launchConfetti() {
+  const c = $('confetti');
+  c.innerHTML = '';
+  const colors = ['#f0a500','#58a6ff','#3fb950','#f85149','#d2a8ff','#fff'];
+  for (let i = 0; i < 80; i++) {
+    const el = document.createElement('div');
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size  = Math.random() * 10 + 6;
+    el.style.cssText = `
+      position:absolute;
+      width:${size}px; height:${size}px;
+      background:${color};
+      border-radius:${Math.random() > .5 ? '50%' : '2px'};
+      left:${Math.random() * 100}%;
+      top:-${size}px;
+      animation: fall ${Math.random() * 2 + 2}s linear ${Math.random() * 2}s forwards;
+      opacity: 1;
+    `;
+    c.appendChild(el);
+  }
+}
+</script>
+</body>
+</html>
