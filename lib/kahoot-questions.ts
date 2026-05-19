@@ -6,6 +6,7 @@ export type KahootQuestion = {
   options: [string, string, string, string]; // always 4
   correct: number; // 0-indexed
   explanation: string; // shown after reveal
+  timeLimit?: number; // in seconds, default 45
 };
 
 export const KAHOOT_QUESTIONS: KahootQuestion[] = [

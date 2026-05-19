@@ -3,9 +3,11 @@ import { addPlayer, getState } from '@/lib/game-state';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   const { name, pin } = await req.json();
-  const S = getState();
+  const S = await getState();
 
   if (pin !== S.pin) {
     return NextResponse.json({ error: 'Wrong PIN' }, { status: 400 });
@@ -25,7 +27,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Name required' }, { status: 400 });
   }
 
-  addPlayer(playerId, trimmed);
+  await addPlayer(playerId, trimmed);
 
   const res = NextResponse.json({ ok: true, playerId, name: trimmed });
   res.cookies.set('player_id', playerId, { httpOnly: true, sameSite: 'lax', maxAge: 3600 });

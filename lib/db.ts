@@ -1,20 +1,18 @@
-// In-memory store — persists for the lifetime of the server process.
-// Wiped on each redeploy. Perfect for a single workshop session.
-
 export type Submission = {
   email: string;
   name: string;
-  submittedAt: Date;
+  submittedAt: string; // ISO string
   mcAnswers: (number | null)[];
   openAnswers: string[];
   mcScore: number;
   mcTotal: number;
 };
 
-const store = new Map<string, Submission>();
+const g = globalThis as typeof globalThis & { __subs?: Map<string, Submission> };
+if (!g.__subs) g.__subs = new Map();
 
 export async function emailExists(email: string): Promise<boolean> {
-  return store.has(email.toLowerCase());
+  return g.__subs!.has(email.toLowerCase());
 }
 
 export async function saveSubmission(data: {
@@ -24,19 +22,20 @@ export async function saveSubmission(data: {
   openAnswers: string[];
   mcScore: number;
 }): Promise<void> {
-  store.set(data.email.toLowerCase(), {
+  const sub: Submission = {
     email: data.email.toLowerCase(),
     name: data.name,
-    submittedAt: new Date(),
+    submittedAt: new Date().toISOString(),
     mcAnswers: data.mcAnswers,
     openAnswers: data.openAnswers,
     mcScore: data.mcScore,
     mcTotal: 6,
-  });
+  };
+  g.__subs!.set(sub.email, sub);
 }
 
 export async function getAllSubmissions(): Promise<Submission[]> {
-  return Array.from(store.values()).sort(
-    (a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()
+  return Array.from(g.__subs!.values()).sort(
+    (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
   );
 }

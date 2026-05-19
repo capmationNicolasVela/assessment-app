@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { submitAnswer } from '@/lib/game-state';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   const cookieStore = cookies();
   const playerId = cookieStore.get('player_id')?.value;
@@ -14,6 +16,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid choice' }, { status: 400 });
   }
 
-  const ok = submitAnswer(playerId, choice);
+  const ok = await submitAnswer(playerId, choice);
   return NextResponse.json({ ok });
 }

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     return [
       `"${row.name}"`,
       `"${row.email}"`,
-      `"${row.submittedAt.toISOString()}"`,
+      `"${row.submittedAt}"`,
       row.mcScore,
       row.mcTotal,
       ...opens,

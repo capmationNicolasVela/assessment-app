@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const COLORS = ['#e21b3c', '#1368ce', '#d89e00', '#26890c'];
 const SHAPES = ['▲', '◆', '●', '■'];
@@ -14,6 +14,7 @@ type HostData = {
   playerCount: number;
   answeredCount: number;
   tally: number[];
+  timeLimit: number;
   leaderboard: { name: string; score: number }[];
   question: {
     type: string;
@@ -23,12 +24,15 @@ type HostData = {
     options: [string, string, string, string];
     correct: number | null;
     explanation: string | null;
+    timeLimit: number; // seconds
   };
 };
 
 export function HostView({ totalQuestions }: { totalQuestions: number }) {
   const [data, setData] = useState<HostData | null>(null);
   const [controlling, setControlling] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const poll = useCallback(async () => {
     const r = await fetch('/api/game/state');
@@ -40,6 +44,40 @@ export function HostView({ totalQuestions }: { totalQuestions: number }) {
     const id = setInterval(poll, 800);
     return () => clearInterval(id);
   }, [poll]);
+
+  // Countdown timer: start/reset when question changes or phase changes
+  useEffect(() => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+
+    if (!data) return;
+
+    if (data.phase === 'question') {
+      const limit = data.question.timeLimit ?? 45;
+      setCountdown(limit);
+      countdownRef.current = setInterval(() => {
+        setCountdown(prev => {
+          if (prev === null || prev <= 1) {
+            if (countdownRef.current) clearInterval(countdownRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setCountdown(null);
+    }
+
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.phase, data?.currentQuestion]);
 
   async function control(action: string) {
     setControlling(true);
@@ -58,6 +96,7 @@ export function HostView({ totalQuestions }: { totalQuestions: number }) {
 
   const { phase, pin, currentQuestion, playerCount, answeredCount, tally, leaderboard, question } = data;
   const maxTally = Math.max(...tally, 1);
+  const totalAnswers = tally.reduce((a, b) => a + b, 0);
 
   return (
     <div style={styles.root}>
@@ -94,35 +133,52 @@ export function HostView({ totalQuestions }: { totalQuestions: number }) {
       {/* Question phase */}
       {(phase === 'question' || phase === 'reveal') && (
         <div style={styles.gameArea}>
-          {/* Question card */}
+          {/* Question card with countdown */}
           <div style={styles.qCard}>
-            <div style={styles.qLabel}>{question.label}</div>
-            <p style={styles.qPrompt}>{question.prompt}</p>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={styles.qLabel}>{question.label}</div>
+                <p style={styles.qPrompt}>{question.prompt}</p>
+              </div>
+              {phase === 'question' && countdown !== null && (
+                <div style={{
+                  ...styles.timerBox,
+                  background: countdown <= 10 ? '#e21b3c' : countdown <= 20 ? '#d89e00' : '#26890c',
+                }}>
+                  {countdown}
+                </div>
+              )}
+            </div>
             {question.context && (
               <pre style={styles.qContext}>{question.context}</pre>
             )}
           </div>
 
-          {/* Answer bars (always visible) */}
-          <div style={styles.barsRow}>
-            {tally.map((count, i) => (
-              <div key={i} style={styles.barWrap}>
-                <div
-                  style={{
-                    ...styles.barFill,
-                    background: COLORS[i],
-                    height: `${(count / maxTally) * 140}px`,
-                    opacity: phase === 'reveal' && question.correct !== null && i !== question.correct ? 0.35 : 1,
-                    outline: phase === 'reveal' && i === question.correct ? '4px solid #fff' : 'none',
-                  }}
-                />
-                <div style={styles.barLabel}>
-                  <span style={{ fontSize: '1.4rem' }}>{SHAPES[i]}</span>
-                  <span style={{ fontSize: '0.85rem', marginLeft: 4 }}>{count}</span>
+          {/* Answer bars — only on reveal */}
+          {phase === 'reveal' && (
+            <div style={styles.barsRow}>
+              {tally.map((count, i) => (
+                <div key={i} style={styles.barWrap}>
+                  <div
+                    style={{
+                      ...styles.barFill,
+                      background: COLORS[i],
+                      height: `${(count / maxTally) * 140}px`,
+                      opacity: question.correct !== null && i !== question.correct ? 0.35 : 1,
+                      outline: i === question.correct ? '4px solid #fff' : 'none',
+                    }}
+                  />
+                  <div style={styles.barLabel}>
+                    <span style={{ fontSize: '1.4rem' }}>{SHAPES[i]}</span>
+                    <span style={{ fontSize: '0.85rem', marginLeft: 4 }}>{count}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#fff', marginLeft: 4 }}>
+                      {totalAnswers > 0 ? Math.round((count / totalAnswers) * 100) : 0}%
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Options grid */}
           <div style={styles.optionsGrid}>
@@ -221,6 +277,7 @@ const styles: Record<string, React.CSSProperties> = {
   qLabel: { fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#f0a500', marginBottom: 8 },
   qPrompt: { fontSize: '1.25rem', fontWeight: 700, lineHeight: 1.4, margin: 0 },
   qContext: { background: '#0d0d1a', border: '1px solid #333', borderRadius: 8, padding: '12px 16px', fontSize: '0.85rem', color: '#94a3b8', marginTop: 12, overflowX: 'auto', whiteSpace: 'pre-wrap' },
+  timerBox: { flexShrink: 0, width: 64, height: 64, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', fontWeight: 900, color: '#fff', transition: 'background 0.5s' },
   barsRow: { display: 'flex', gap: 8, height: 160, alignItems: 'flex-end', justifyContent: 'center' },
   barWrap: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
   barFill: { width: '100%', borderRadius: '4px 4px 0 0', transition: 'height 0.4s', minHeight: 4 },
