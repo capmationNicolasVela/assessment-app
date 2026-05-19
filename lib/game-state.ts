@@ -18,7 +18,7 @@ export type KahootScore = { name: string; score: number };
 function createState(): GameState {
   return {
     phase: 'lobby',
-    pin: Math.floor(100000 + Math.random() * 900000).toString(),
+    pin: process.env.GAME_PIN ?? '123456',
     players: {},
     currentQuestion: 0,
     questionStartedAt: 0,
