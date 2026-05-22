@@ -145,7 +145,13 @@ textarea:focus { border-color: var(--brand); }
 /* Q cards */
 .q-number { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
 .q-number span { background: var(--brand); color: #fff; border-radius: 4px; padding: 2px 8px; margin-right: 6px; }
-.q-text { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 18px; line-height: 1.55; }
+.q-text { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 10px; line-height: 1.55; }
+.q-text-block { margin-bottom: 18px; }
+.q-text-block .q-text:last-child { margin-bottom: 0; }
+.q-list { font-size: 1rem; font-weight: 600; color: var(--text); line-height: 1.6; margin: 6px 0 10px 0; padding-left: 1.4rem; }
+.q-list li { margin-bottom: 4px; }
+.q-list-ordered { list-style: decimal; }
+.q-list-bullet { list-style: disc; }
 .q-context { background: #f8fafc; border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 0.88rem; color: var(--muted); margin-bottom: 16px; }
 
 /* MC options */

@@ -92,14 +92,14 @@ export const QUESTIONS: Question[] = [
   {
     type: 'open',
     section: 'Open Questions',
-    text: 'A developer tells you: "The integration is done — I tested it and a user gets created in the Platform when a contact is added in the CRM." As a BA/PM, what is one risk or open question you would raise before approving this for go-live?',
-    hint: 'Think about failure scenarios, data consistency, or security.',
+    text: 'A client tells you: "We need the system to automatically update a contact\'s profile in the Platform whenever their information is edited in the CRM."\n\nAs a BA/PM, do the following:\n\n1. Write a 1-sentence Epic that captures the business goal.\n2. Break it down into 3 User Stories using the "As a [role], I can [action] so that [value]" format. Each story must map to a specific HTTP method and endpoint (e.g., PATCH /users/:id).\n3. For each story, identify: the required auth role, the expected success status code, and one error scenario (status code + what caused it).\n4. Check your stories against INVEST — flag any criterion your stories may fail and explain why.',
+    hint: 'Think about: who triggers the sync, what happens if the token expires mid-batch, and how the system handles a field that doesn\'t map cleanly.',
   },
   {
     type: 'open',
     section: 'Open Questions',
-    text: 'In your own words: what is the role of a BA/PM in an API integration project — and what is NOT their role?',
-    hint: '1–2 sentences.',
+    text: 'A product team is building an automated onboarding flow. When a new client is added in the CRM, the system must automatically create a user account in the Platform via POST /users. The integration authenticates using a Bearer token and sends the following fields: username, email, password, and role: "client".\n\nWrite 3 Gherkin scenarios for the story: "As the system, I can create a Platform user account when a new client is added in the CRM, so that onboarding requires zero manual steps."\n\n- Scenario 1 — Happy path: account is created successfully\n- Scenario 2 — Error path: the email already exists in the Platform\n- Scenario 3 — Error path: the access token has expired before the call is made\n\nEach scenario must follow the Given / When / Then / And structure and reference the correct HTTP method, endpoint, and status code. For error scenarios, define what the system must do next — not just what code it receives.',
+    hint: 'Think about: what preconditions are needed, what the API call looks like, and what the system must do — not just what it receives.',
   },
 ];
 

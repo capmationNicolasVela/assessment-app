@@ -6,6 +6,36 @@ import { QUESTIONS } from '@/lib/questions';
 
 type Answers = (number | string | null)[];
 
+function renderText(text: string) {
+  const blocks = text.split('\n\n');
+  const result: React.ReactNode[] = [];
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i].trim();
+    const lines = block.split('\n');
+
+    const isOrdered = lines.every(l => /^\d+\./.test(l.trim()));
+    const isBullet = lines.every(l => l.trim().startsWith('- '));
+
+    if (isOrdered) {
+      result.push(
+        <ol key={i} className="q-list q-list-ordered">
+          {lines.map((l, j) => <li key={j}>{l.replace(/^\d+\.\s*/, '')}</li>)}
+        </ol>
+      );
+    } else if (isBullet) {
+      result.push(
+        <ul key={i} className="q-list q-list-bullet">
+          {lines.map((l, j) => <li key={j}>{l.replace(/^-\s*/, '')}</li>)}
+        </ul>
+      );
+    } else {
+      result.push(<p key={i} className="q-text">{block}</p>);
+    }
+  }
+  return result;
+}
+
 export function AssessmentForm({ participantName }: { participantName: string }) {
   const router = useRouter();
   const [current, setCurrent] = useState(0);
@@ -130,7 +160,7 @@ export function AssessmentForm({ participantName }: { participantName: string })
           <div className="q-number">
             <span>{current + 1}</span>{q.section}
           </div>
-          <p className="q-text">{q.text}</p>
+          <div className="q-text-block">{renderText(q.text)}</div>
 
           {q.type === 'mc' && q.context && (
             <div className="q-context">{q.context}</div>
