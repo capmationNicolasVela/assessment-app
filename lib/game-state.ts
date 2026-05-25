@@ -2,6 +2,14 @@ export type GamePhase = 'lobby' | 'question' | 'reveal' | 'finished';
 
 export type Player = { id: string; name: string; score: number; answered: boolean };
 export type Answer = { playerId: string; choice: number; answeredAt: number };
+export type PlayerAnswer = {
+  playerId: string;
+  playerName: string;
+  questionIndex: number;
+  choice: number;
+  correct: boolean;
+  pointsEarned: number;
+};
 
 export type GameState = {
   phase: GamePhase;
@@ -10,6 +18,7 @@ export type GameState = {
   currentQuestion: number;
   questionStartedAt: number;
   answers: Answer[];
+  answerHistory: PlayerAnswer[];
   timeLimit: number; // ms
 };
 
@@ -23,6 +32,7 @@ function createState(): GameState {
     currentQuestion: 0,
     questionStartedAt: 0,
     answers: [],
+    answerHistory: [],
     timeLimit: 45000,
   };
 }
@@ -67,13 +77,25 @@ export async function submitAnswer(playerId: string, choice: number): Promise<bo
 export async function revealAnswers(correctIndex: number): Promise<void> {
   S().phase = 'reveal';
   const TIME_LIMIT = S().timeLimit;
+  const qIndex = S().currentQuestion;
   for (const ans of S().answers) {
-    if (ans.choice === correctIndex) {
+    const player = S().players[ans.playerId];
+    const isCorrect = ans.choice === correctIndex;
+    let pointsEarned = 0;
+    if (isCorrect) {
       const speed = Math.max(0, TIME_LIMIT - (ans.answeredAt - S().questionStartedAt));
       const speedBonus = Math.round((speed / TIME_LIMIT) * 500);
-      const player = S().players[ans.playerId];
-      if (player) player.score += 1000 + speedBonus;
+      pointsEarned = 1000 + speedBonus;
+      if (player) player.score += pointsEarned;
     }
+    S().answerHistory.push({
+      playerId: ans.playerId,
+      playerName: player?.name ?? 'Unknown',
+      questionIndex: qIndex,
+      choice: ans.choice,
+      correct: isCorrect,
+      pointsEarned,
+    });
   }
 }
 
@@ -95,6 +117,10 @@ export async function resetGame(): Promise<void> {
 
 export async function getKahootScores(): Promise<KahootScore[]> {
   return g.__kahoot_scores ?? [];
+}
+
+export async function getKahootAnswerHistory(): Promise<PlayerAnswer[]> {
+  return S().answerHistory;
 }
 
 export async function getHostState(totalQuestions: number) {

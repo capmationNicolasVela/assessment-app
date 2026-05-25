@@ -1,19 +1,77 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAllSubmissions } from '@/lib/db';
-import { getKahootScores, type KahootScore } from '@/lib/game-state';
+import { getKahootScores, getKahootAnswerHistory, type KahootScore } from '@/lib/game-state';
 import { QUESTIONS } from '@/lib/questions';
+import { getAssessmentQuestions, getKahootQuestionsStore } from '@/lib/questions-store';
 import { ResultsTable } from './results-table';
+import { QuestionAnalysis, type QuestionStat } from './question-analysis';
 
 export default async function DashboardPage() {
   const admin = cookies().get('admin_session')?.value;
   if (admin !== process.env.ADMIN_PASSWORD) redirect('/admin');
 
-  const [rows, kahootScores] = await Promise.all([
+  const [rows, kahootScores, answerHistory, assessmentQs, kahootQs] = await Promise.all([
     getAllSubmissions(),
     getKahootScores(),
+    getKahootAnswerHistory(),
+    getAssessmentQuestions(),
+    getKahootQuestionsStore(),
   ]);
   const openQs = QUESTIONS.filter(q => q.type === 'open');
+
+  const mcQs = assessmentQs.filter(q => q.type === 'mc');
+  const mcStats: QuestionStat[] = mcQs.map((q, i) => {
+    const choiceCounts = [0, 0, 0, 0];
+    let correctCount = 0;
+    let totalAnswered = 0;
+    for (const row of rows) {
+      const answer = row.mcAnswers[i];
+      if (answer !== null && answer !== undefined) {
+        totalAnswered++;
+        choiceCounts[answer] = (choiceCounts[answer] ?? 0) + 1;
+        if (answer === q.correct) correctCount++;
+      }
+    }
+    return {
+      questionText: q.text,
+      pctCorrect: totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0,
+      choiceCounts,
+      correctIndex: q.correct,
+      totalAnswered,
+      options: q.options,
+    };
+  });
+
+  const kahootStats: QuestionStat[] = kahootQs.map((q, i) => {
+    const choiceCounts = [0, 0, 0, 0];
+    let correctCount = 0;
+    let totalAnswered = 0;
+    for (const ans of answerHistory.filter(a => a.questionIndex === i)) {
+      totalAnswered++;
+      choiceCounts[ans.choice] = (choiceCounts[ans.choice] ?? 0) + 1;
+      if (ans.correct) correctCount++;
+    }
+    return {
+      questionText: q.prompt,
+      pctCorrect: totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0,
+      choiceCounts,
+      correctIndex: q.correct,
+      totalAnswered,
+      options: [...q.options],
+    };
+  });
+
+  // Group Kahoot history by player name (lowercase) for per-user detail
+  const kahootHistoryByName: Record<string, { questionIndex: number; choice: number; correct: boolean }[]> = {};
+  for (const ans of answerHistory) {
+    const key = ans.playerName.toLowerCase();
+    if (!kahootHistoryByName[key]) kahootHistoryByName[key] = [];
+    kahootHistoryByName[key].push({ questionIndex: ans.questionIndex, choice: ans.choice, correct: ans.correct });
+  }
+
+  const mcQsForTable = mcQs.map(q => ({ text: q.text, options: q.options, correct: q.correct }));
+  const kahootQsForTable = kahootQs.map(q => ({ prompt: q.prompt, options: [...q.options], correct: q.correct }));
 
   return (
     <>
@@ -79,8 +137,17 @@ export default async function DashboardPage() {
             No submissions yet. Share the assessment URL with participants.
           </div>
         ) : (
-          <ResultsTable rows={rows} openQuestions={openQs.map(q => q.text)} kahootScores={kahootScores} />
+          <ResultsTable
+            rows={rows}
+            openQuestions={openQs.map(q => q.text)}
+            kahootScores={kahootScores}
+            mcQuestions={mcQsForTable}
+            kahootQuestions={kahootQsForTable}
+            kahootHistoryByName={kahootHistoryByName}
+          />
         )}
+
+        <QuestionAnalysis mcStats={mcStats} kahootStats={kahootStats} />
       </div>
     </>
   );
